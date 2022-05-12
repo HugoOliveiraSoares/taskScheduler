@@ -1,89 +1,47 @@
 package com.example.demo.configuration;
 
 import com.example.demo.taks.FileReportNotificationTask;
-import com.example.demo.taks.MyTask;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.Trigger;
-import org.springframework.scheduling.TriggerContext;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.SchedulingConfigurer;
-import org.springframework.scheduling.config.ScheduledTaskRegistrar;
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
+import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.temporal.TemporalAdjusters;
 import java.util.Date;
 
-@EnableScheduling
-@Async
-@Configuration
-public class AppSchedulerConfigurer implements SchedulingConfigurer {
+@Component
+public class AppSchedulerConfigurer {
 
-    @Autowired
-    private FileReportNotificationTask fileReportNotificationTask;
+   public void agenda(LocalTime localTime) {
+       this.agenda(localTime.atDate(LocalDate.of(2022, 5, 12)));
+   }
 
-    @Autowired
-    private MyTask myTask;
+    public void agenda(LocalDateTime localDateTime) {
+        SchedulerFactory shedFact = new StdSchedulerFactory();
 
-    @Override
-    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-
-        taskRegistrar.addTriggerTask(fileReportNotificationTask, new Trigger() {
-            @Override
-            public Date nextExecutionTime(TriggerContext triggerContext) {
-
-                Date date = triggerContext.lastActualExecutionTime();
-
-                if (date == null) {
-                    return getThirdLastDateOfCurrentMonth();
-                } else {
-                    return getThirdLastDateOfNextMonth(date);
-                }
-
-            }
-        });
-
-        taskRegistrar.addTriggerTask(myTask, new Trigger() {
-            @Override
-            public Date nextExecutionTime(TriggerContext triggerContext) {
-                Date date = triggerContext.lastActualExecutionTime();
-
-                if (date == null) {
-                    return getThirdLastDateOfCurrentMonth();
-                } else {
-                    return getThirdLastDateOfNextMonth(date);
-                }
-            }
-        });
-
-    }
-
-    public Date getThirdLastDateOfCurrentMonth() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime desiredDate = now.plusMinutes(1);
-
-        if (now.isEqual(desiredDate)) {
-            return new Date();
+        try {
+            Scheduler scheduler = shedFact.getScheduler();
+            scheduler.start();
+            JobDetail job = JobBuilder.newJob(FileReportNotificationTask.class)
+                    .build();
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .startAt(convertToDate(localDateTime))
+                    .build();
+            scheduler.scheduleJob(job, trigger);
+        } catch(SchedulerException e) {
+            e.printStackTrace();
         }
-        return convertToDate(desiredDate);
     }
 
-    public Date getThirdLastDateOfNextMonth(Date lastExecutionDate) {
-        LocalDateTime lastExecutionDateTime = convertToLocalDateTime(lastExecutionDate);
-
-        LocalDateTime desiredDate = lastExecutionDateTime.plusMinutes(2);
-
-        return convertToDate(desiredDate);
-    }
-
-    public Date convertToDate(LocalDateTime localDateTime) {
+    private Date convertToDate(LocalDateTime localDateTime) {
         return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
     }
 
-    public LocalDateTime convertToLocalDateTime(Date date) {
-        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    private Date convertToDate(LocalTime localTime) {
+        return Date.from(localTime.atDate(LocalDate.of(2022, 5, 12)).
+                atZone(ZoneId.systemDefault()).toInstant());
     }
 
 }

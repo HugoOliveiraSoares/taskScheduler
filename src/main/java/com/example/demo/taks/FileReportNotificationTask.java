@@ -1,21 +1,16 @@
 package com.example.demo.taks;
 
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalTime;
 
 @Component
-public class FileReportNotificationTask implements Runnable {
-
+public class FileReportNotificationTask implements Job {
     @Override
-    public void run() {
-        try {
-            System.out.println("notification task " + LocalTime.now().toString());
-            Thread.sleep(1000);
-            System.out.println("notification task " + LocalTime.now().toString());
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    public void execute(JobExecutionContext jobExecutionContext) {
+        System.out.println("Enviando notificação " + LocalTime.now());
     }
-
 }
